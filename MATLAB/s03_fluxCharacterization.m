@@ -146,13 +146,13 @@ weights = 1./flux_error.^2; % weights for weighted linear regression are inverse
 
 % weighted linear regression through origin
 fit_WLS_origin = fit(pixel_vals,flux_measurements,'poly1','Lower', [-Inf 0], 'Upper', [Inf, 0],'Weights',weights);
-p_WLS_origin = fit_WLS_origin.p1;
+p = fit_WLS_origin.p1;
 poly_bounds = confint(fit_WLS_origin); % get 95% confidence interval bounds for polynomial
-p_lower_WLS = poly_bounds(1,1); % get smallest bounding polynomial
-p_upper_WLS = poly_bounds(2,1); % get largest bounding polynomial
+p_lower = poly_bounds(1,1); % get smallest bounding polynomial
+p_upper = poly_bounds(2,1); % get largest bounding polynomial
 
 % calculate r_squared
-fx = p_WLS_origin*pixel_vals;
+fx = p*pixel_vals;
 residuals = fx - flux_measurements; % vector of residuals
 yavg = mean(flux_measurements); % mean of y values
 ssr = sum(residuals.^2); % sum of the square of the resididuals
@@ -163,15 +163,15 @@ f1 = figure;
 grid on;
 hold on
 errorbar(pixel_vals,flux_measurements,flux_error,'o');
-axis([0 max_pixel 0 max_pixel*p_upper_WLS]);
+axis([0 max_pixel 0 max_pixel*p_upper]);
 xlabel('Pixel Value')
 ylabel('Flux (kW/m^2)');
 
 % get line of best fit
 x = linspace(0,max_pixel);
-y_WLS_origin = p_WLS_origin*x;
-y_upper = p_upper_WLS*x;
-y_lower = p_lower_WLS*x;
+y_WLS_origin = p*x;
+y_upper = p_upper*x;
+y_lower = p_lower*x;
 
 
 % plot the correlation, in addition to the upper and lower bounds
@@ -188,9 +188,9 @@ leg.Location = 'southeast'
 
 % create flux map
 f2 = figure;
-flux_img = (im2double(composite_img))*(2^16-1)*p_WLS_origin;
-flux_img_upper = (im2double(composite_img))*(2^16-1)*p_upper_WLS;
-flux_img_lower = (im2double(composite_img))*(2^16-1)*p_lower_WLS;
+flux_img = (im2double(composite_img))*(2^16-1)*p;
+flux_img_upper = (im2double(composite_img))*(2^16-1)*p_upper;
+flux_img_lower = (im2double(composite_img))*(2^16-1)*p_lower;
 peak_val = max(flux_img(:));
 for row=1:image_size(1)
     for col=1:image_size(2)
@@ -281,4 +281,6 @@ ylabel('Average flux (kW/m^2)');
 total_flux = sum(flux_img(:))*area_per_pixel
 flux_upper = sum(flux_img_upper(:))*area_per_pixel
 flux_lower = sum(flux_img_lower(:))*area_per_pixel
-flux_uncertainty = (flux_upper - total_flux)
+
+p_error_rel = (p_upper - p)/p;
+total_flux_uncertainty = total_flux*sqrt(0.000325 + p_error_rel^2) % Determined in uncertainty section
